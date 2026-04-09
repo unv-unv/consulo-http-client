@@ -1,10 +1,12 @@
 package org.javamaster.httpclient.impl.dashboard;
 
+import consulo.annotation.access.RequiredReadAction;
 import consulo.application.Application;
 import consulo.disposer.Disposable;
 import consulo.disposer.Disposer;
 import consulo.httpClient.localize.HttpClientLocalize;
 import consulo.language.psi.util.PsiTreeUtil;
+import consulo.localize.LocalizeValue;
 import consulo.process.BaseProcessHandler;
 import consulo.project.Project;
 import consulo.project.ui.wm.ToolWindowId;
@@ -28,7 +30,7 @@ import org.javamaster.httpclient.model.*;
 import org.javamaster.httpclient.parser.HttpFile;
 import org.javamaster.httpclient.psi.*;
 import org.javamaster.httpclient.utils.HttpUtilsPart;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import javax.swing.*;
 import java.io.ByteArrayInputStream;
@@ -77,6 +79,7 @@ public class HttpProcessHandler extends BaseProcessHandler {
 
     public boolean hasError = false;
 
+    @RequiredReadAction
     public HttpProcessHandler(HttpMethod httpMethod, String selectedEnv) {
         this.httpMethod = httpMethod;
         this.selectedEnv = selectedEnv;
@@ -187,9 +190,7 @@ public class HttpProcessHandler extends BaseProcessHandler {
 
                 return new HttpReqInfo(reqBody, environment, preJsFiles);
             })
-            .finishOnUiThread(reqInfo -> {
-                startHandleRequest(reqInfo);
-            })
+            .finishOnUiThread(reqInfo -> startHandleRequest(reqInfo))
             .exceptionallyOnUiThread(this::handleException);
     }
 
@@ -624,6 +625,7 @@ public class HttpProcessHandler extends BaseProcessHandler {
         cancelFutureIfTerminated(future);
     }
 
+    @RequiredReadAction
     private void dealResponse(HttpInfo httpInfo, String parentPath) {
         HttpRequestTarget requestTargetLocal = PsiTreeUtil.getNextSiblingOfType(httpMethod, HttpRequestTarget.class);
 
@@ -672,14 +674,14 @@ public class HttpProcessHandler extends BaseProcessHandler {
         if (hasError) {
             myThrowable.printStackTrace();
 
-            String error = (myThrowable instanceof CancellationException || myThrowable.getCause() instanceof CancellationException) ?
-                NlsBundle.message("req.interrupted", tabName) :
-                NlsBundle.message("req.failed", tabName, myThrowable);
+            LocalizeValue error = (myThrowable instanceof CancellationException || myThrowable.getCause() instanceof CancellationException)
+                ? HttpClientLocalize.reqInterrupted(tabName)
+                : HttpClientLocalize.reqFailed(tabName, myThrowable);
             String msg = "<div style='font-size:13pt'>" + error + "</div>";
             toolWindowManager.notifyByBalloon(ToolWindowId.SERVICES, NotificationType.ERROR, msg);
         }
         else {
-            String msg = "<div style='font-size:13pt'>" + tabName + " " + NlsBundle.message("request.success") + "!</div>";
+            String msg = "<div style='font-size:13pt'>" + tabName + " " + HttpClientLocalize.requestSuccess() + "!</div>";
             toolWindowManager.notifyByBalloon(ToolWindowId.SERVICES, NotificationType.INFO, msg);
         }
     }
@@ -715,12 +717,12 @@ public class HttpProcessHandler extends BaseProcessHandler {
         }
         catch (Exception e) {
             e.printStackTrace();
-            return "// " + NlsBundle.message("save.failed") + ": " + e + HttpUtils.CR_LF;
+            return "// " + HttpClientLocalize.saveFailed().get() + ": " + e + HttpUtils.CR_LF;
         }
 
         VirtualFileManager.getInstance().asyncRefresh(null);
 
-        return "// " + NlsBundle.message("save.to.file") + ": " + file.toPath().normalize().toAbsolutePath() + HttpUtils.CR_LF;
+        return "// " + HttpClientLocalize.saveToFile() + ": " + file.toPath().normalize().toAbsolutePath() + HttpUtils.CR_LF;
     }
 
     private void cancelFutureIfTerminated(CompletableFuture<?> future) {
@@ -748,9 +750,7 @@ public class HttpProcessHandler extends BaseProcessHandler {
     @Override
     protected void destroyProcessImpl() {
         if (loadingRemover != null) {
-            Application.get().invokeLater(() -> {
-                loadingRemover.run();
-            });
+            Application.get().invokeLater(() -> loadingRemover.run());
         }
 
         /// TODO

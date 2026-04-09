@@ -57,7 +57,7 @@ public class HttpSwitchEnvironmentIntention extends BaseIntentionAction {
 
         JBPopupFactory popupFactory = JBPopupFactory.getInstance();
         JBPopup popup = popupFactory.createPopupChooserBuilder(new ArrayList<>(envSet))
-            .setItemChosenCallback(item -> topForm.setSelectEnv(item))
+            .setItemChosenCallback(item -> topForm.setSelectedEnv(item))
             .createPopup();
 
         EditorPopupHelper.getInstance().showPopupInBestPositionFor(editor, popup);

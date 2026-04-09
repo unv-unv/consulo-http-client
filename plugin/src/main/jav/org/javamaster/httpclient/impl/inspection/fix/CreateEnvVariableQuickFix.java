@@ -56,7 +56,7 @@ public class CreateEnvVariableQuickFix implements LocalQuickFix, PriorityAction 
         var jsonFile = getEnvJsonFile(envFileName, httpFileParentPath, project);
         if (jsonFile == null) {
             AddAction.createAndReInitEnvCompo(isPrivate);
-            topForm.setSelectEnv("dev");
+            topForm.setSelectedEnv("dev");
         } else {
             if (topForm.getSelectedEnv() == null) {
                 return;

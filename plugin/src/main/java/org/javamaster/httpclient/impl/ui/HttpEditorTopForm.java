@@ -15,8 +15,9 @@ import consulo.util.collection.ArrayUtil;
 import consulo.util.dataholder.Key;
 import consulo.util.lang.Trinity;
 import consulo.virtualFileSystem.VirtualFile;
+import org.javamaster.httpclient.env.Environment;
 import org.javamaster.httpclient.impl.action.ChooseEnvironmentAction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -80,19 +81,19 @@ public class HttpEditorTopForm extends JComponent {
 
     public void initEnvCombo(Set<String> presetEnvSet) {
         if (presetEnvSet.contains("uat")) {
-            setSelectEnv("uat");
+            setSelectedEnv("uat");
         }
         else if (presetEnvSet.contains("test")) {
-            setSelectEnv("test");
+            setSelectedEnv("test");
         }
     }
 
     public @Nullable String getSelectedEnv() {
-        return chooseEnvironmentAction.getSelectedEnv();
+        return chooseEnvironmentAction.getSelectedEnv().value();
     }
 
-    public void setSelectEnv(String env) {
-        chooseEnvironmentAction.setSelectEnv(env);
+    public void setSelectedEnv(@Nullable String env) {
+        chooseEnvironmentAction.setSelectEnv(Environment.of(env));
     }
 
     public static @Nullable String getSelectedEnv(Project project) {
@@ -104,7 +105,7 @@ public class HttpEditorTopForm extends JComponent {
         return httpEditorTopForm.getSelectedEnv();
     }
 
-    public static @Nullable Trinity<String, VirtualFile, Module> getTriple(Project project) {
+    public static @Nullable Trinity<@Nullable String, VirtualFile, Module> getTriple(Project project) {
         HttpEditorTopForm topForm = getSelectedEditorTopForm(project);
         if (topForm == null) {
             return null;
@@ -140,7 +141,7 @@ public class HttpEditorTopForm extends JComponent {
             return;
         }
 
-        httpEditorTopForm.setSelectEnv(env);
+        httpEditorTopForm.setSelectedEnv(env);
     }
 
     private void $$$setupUI$$$() {

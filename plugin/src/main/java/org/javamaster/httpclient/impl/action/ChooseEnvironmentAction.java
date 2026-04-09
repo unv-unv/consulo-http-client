@@ -3,34 +3,33 @@ package org.javamaster.httpclient.impl.action;
 import consulo.dataContext.DataContext;
 import consulo.httpClient.localize.HttpClientLocalize;
 import consulo.language.editor.DaemonCodeAnalyzer;
-import consulo.language.editor.PlatformDataKeys;
 import consulo.project.Project;
+import consulo.ui.annotation.RequiredUIAccess;
 import consulo.ui.ex.action.*;
 import consulo.ui.ex.awt.action.ComboBoxAction;
 import consulo.ui.ex.awt.action.ComboBoxButtonImpl;
 import consulo.virtualFileSystem.VirtualFile;
 import jakarta.annotation.Nonnull;
 import org.javamaster.httpclient.env.EnvFileService;
+import org.javamaster.httpclient.env.Environment;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author yudong
  */
 public class ChooseEnvironmentAction extends ComboBoxAction {
-    private final VirtualFile file;
-    private ComboBoxButtonImpl comboBoxButton;
-    private String selectedEnv;
+    private final VirtualFile myFile;
+    private ComboBoxButtonImpl myComboBoxButton;
+    private Environment mySelectedEnv = Environment.NO_ENVIRONMENT;
 
-    public static final String noEnv = HttpClientLocalize.noEnv().get();
     private Presentation myPresentation;
 
     public ChooseEnvironmentAction(VirtualFile file) {
-        this.file = file;
+        myFile = file;
     }
 
     @Override
@@ -56,14 +55,14 @@ public class ChooseEnvironmentAction extends ComboBoxAction {
     protected ComboBoxButtonImpl createComboBoxButton(Presentation presentation) {
         myPresentation = presentation;
 
-        presentation.setDescriptionValue(HttpClientLocalize.envTooltip());
+        presentation.setDescription(HttpClientLocalize.envTooltip());
 
-        presentation.setText(selectedEnv != null ? selectedEnv : noEnv);
+        presentation.setText(mySelectedEnv.displayName());
 
-        comboBoxButton = (ComboBoxButtonImpl) super.createComboBoxButton(presentation);
-        comboBoxButton.setBorder(null);
+        myComboBoxButton = (ComboBoxButtonImpl) super.createComboBoxButton(presentation);
+        myComboBoxButton.setBorder(null);
 
-        return comboBoxButton;
+        return myComboBoxButton;
     }
 
     @Nonnull
@@ -74,60 +73,53 @@ public class ChooseEnvironmentAction extends ComboBoxAction {
 
     @Override
     protected ActionGroup createPopupActionGroup(JComponent button, DataContext dataContext) {
-        var project = dataContext.getData(PlatformDataKeys.PROJECT);
+        var project = dataContext.getData(Project.KEY);
         if (project == null) {
             return ActionGroup.EMPTY_GROUP;
         }
 
-        String path = file.getParent() != null ? file.getParent().getPath() : null;
+        String path = myFile.getParent() != null ? myFile.getParent().getPath() : null;
         if (path == null) {
             return ActionGroup.EMPTY_GROUP;
         }
 
         EnvFileService envFileService = EnvFileService.getService(project);
-        Set<String> presetEnvSet = envFileService.getPresetEnvSet(path);
-
-        List<String> envList = new ArrayList<>();
-        envList.add(noEnv);
-        envList.addAll(presetEnvSet);
 
         List<AnAction> actions = new ArrayList<>();
-        for (String env : envList) {
-            actions.add(new MyAction(env));
+        actions.add(new MyAction(Environment.NO_ENVIRONMENT));
+        for (String presetEnv : envFileService.getPresetEnvSet(path)) {
+            actions.add(new MyAction(Environment.of(presetEnv)));
         }
 
         return new DefaultActionGroup(actions);
     }
 
-    public String getSelectedEnv() {
-        return selectedEnv;
+    public Environment getSelectedEnv() {
+        return mySelectedEnv;
     }
 
-    public void setSelectEnv(String env) {
-        if (env.isEmpty() || env.equals(noEnv)) {
-            selectedEnv = null;
-        } else {
-            selectedEnv = env;
-        }
+    public void setSelectEnv(Environment env) {
+        mySelectedEnv = env;
 
-        if (comboBoxButton != null) {
-            myPresentation.setText(selectedEnv != null ? selectedEnv : noEnv);
+        if (myComboBoxButton != null) {
+            myPresentation.setText(mySelectedEnv.displayName());
         }
     }
 
     private class MyAction extends AnAction {
-        private final String env;
+        private final Environment myEnv;
 
-        MyAction(String env) {
-            super(env);
-            this.env = env;
+        MyAction(Environment env) {
+            super(env.displayName());
+            myEnv = env;
         }
 
         @Override
+        @RequiredUIAccess
         public void actionPerformed(AnActionEvent e) {
-            setSelectEnv(env);
+            setSelectEnv(myEnv);
 
-            DaemonCodeAnalyzer.getInstance(e.getData(Project.KEY)).restart();
+            DaemonCodeAnalyzer.getInstance(e.getRequiredData(Project.KEY)).restart();
         }
     }
 }
